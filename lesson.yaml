@@ -1,0 +1,131 @@
+- Class: meta
+  Course: Public Health Data Analysis
+  Lesson: EWMA Calculation and Control Chart
+  Author: Lekshmi Rita Venugopal
+  Type: Standard
+  Organization: SWDH
+  Version: 2.4.5
+
+
+- Class: text
+  Output: |
+    Welcome to the lesson on calculating Exponentially Weighted Moving Average (EWMA) and creating a control chart using R!
+
+- Class: text
+  Output: |
+    Let's start by creating the simulation data.
+
+- Class: cmd_question
+  Output: |
+    Create the simulation data with the columns `Date` and `Incidence_rate`.
+  CorrectAnswer: |
+    simulation <- data.frame(
+      Date = seq(as.Date("2024-01-01"), as.Date("2024-04-09"), by="day"),
+      Incidence_rate = c(6.253319, 8.971453, 5.95713, 11.368602, 10.774229, 5.516471, 5.451247, 10.584614,
+                         7.123854, 7.215942, 11.379639, 6.497677, 7.666793, 5.981425, 2.928209, 10.303529,
+                         5.44821, 4.053004, 6.922267, 13.050085, 9.508969, 5.690831, 9.005739, 12.290799,
+                         7.311991, 9.025571, 6.715227, 5.779282, 6.181303, 4.861109, 11.005764, 10.38528,
+                         7.62934, 9.644377, 2.779513, 7.331782, 9.096839, 5.435181, 5.674068, 6.148808,
+                         5.993504, 6.548397, 6.238732, 5.372094, 6.360652, 4.39974, 7.187333, 8.532611,
+                         5.7643, 7.973579, 3.289593, 7.256884, 8.753308, 3.652457, 6.048381, 4.954972,
+                         4.215096, 6.332058, 9.619773, 16.918997, 17.424653, 14.607964, 14.382117, 15.944438,
+                         19.519407, 17.301153, 19.105676, 18.359294, 18.150296, 14.975871, 8.117647, 7.052525,
+                         7.509443, 1.743908, 8.843862, 4.34805, 6.235387, 7.077961, 5.038143, 3.928692,
+                         6.444551, 8.451504, 6.041233, 8.577503, 1.946753, 7.131337, 10.53936, 10.739948,
+                         11.909104, 3.556107, 5.701784, 7.737803, 4.427856, 6.485332, 4.398464, 4.469093,
+                         7.538244, 4.687917, 9.100109, 5.71297)
+    )
+    head(simulation)
+  Hint: Use the `data.frame()` function to create the dataset and `seq()` to generate the date sequence.
+
+- Class: text
+  Output: |
+    Great! Now let's proceed with loading the necessary libraries.
+
+- Class: cmd_question
+  Output: |
+    Load the `dplyr`, `qcc`, `ggplot2`, and `readxl` libraries.
+  CorrectAnswer: |
+    library(dplyr)
+    library(qcc)
+    library(ggplot2)
+    library(readxl)
+  Hint: Use the `library()` function to load the required packages.
+
+- Class: text
+  Output: |
+    Next, we'll check for any missing values in the data.
+
+- Class: cmd_question
+  Output: |
+    Check for any missing values in the dataset.
+  CorrectAnswer: |
+    sum(is.na(simulation))
+  Hint: Use the `is.na()` function to check for missing values.
+
+- Class: text
+  Output: |
+    Now, we'll calculate the EWMA. Set up the parameters and initialize the EWMA column.
+
+- Class: cmd_question
+  Output: |
+    Set the smoothing factor (alpha) to 0.3 and calculate the initial EWMA value.
+  CorrectAnswer: |
+    alpha <- 0.3
+    initial_value <- simulation$Incidence_rate[1]
+    simulation <- simulation %>% mutate(ewma = ifelse(row_number() == 1, initial_value, NA))
+  Hint: Use the `mutate()` function from the `dplyr` package.
+
+- Class: cmd_question
+  Output: |
+    Calculate the EWMA for each day.
+  CorrectAnswer: |
+    for (i in 2:nrow(simulation)) {
+      simulation$ewma[i] <- alpha * simulation$Incidence_rate[i] + (1 - alpha) * simulation$ewma[i - 1]
+    }
+  Hint: Use a `for` loop to calculate the EWMA.
+
+- Class: text
+  Output: |
+    Let's create a control chart and identify the upper and lower control limits.
+
+- Class: cmd_question
+  Output: |
+    Create the control chart using the `qcc` function.
+  CorrectAnswer: |
+    control_chart <- qcc(simulation$ewma, type = "xbar.one", title = "EWMA Control Chart", xlab = "", ylab = "value")
+  Hint: Use the `qcc()` function from the `qcc` package.
+
+- Class: cmd_question
+  Output: |
+    Extract the center line, standard deviation, and control limits from the control chart.
+  CorrectAnswer: |
+    ewma_center <- control_chart$center
+    sd <- control_chart$std.dev
+    ewma_lcl <- control_chart$limits[, "LCL"]
+    ewma_ucl <- control_chart$limits[, "UCL"]
+  Hint: Use the `$` operator to extract these values from the control chart object.
+
+- Class: text
+  Output: |
+    Finally, let's create the EWMA plot using `ggplot2`.
+
+- Class: cmd_question
+  Output: |
+    Create a ggplot to visualize the EWMA control chart.
+  CorrectAnswer: |
+    ggplot(simulation, aes(x = Date, y = ewma)) +
+      geom_line() +
+      geom_ribbon(aes(ymin = ewma_lcl, ymax = ewma_ucl), fill = "grey", alpha = 0.3) +
+      geom_point(aes(color = out_of_control), size = 1) +
+      geom_hline(yintercept = ewma_ucl, linetype = "dashed", color = "black") +
+      geom_hline(yintercept = ewma_lcl, linetype = "dashed", color = "black") +
+      geom_hline(yintercept = ewma_center, linetype = "dashed", color = "black") +
+      labs(title = "EWMA Control Chart", x = "Date", y = "EWMA") +
+      theme_minimal() +
+      scale_color_manual(values = c("black", "red"), labels = c("No", "Yes"))
+  Hint: Use `ggplot2` functions to create the plot.
+
+- Class: text
+  Output: |
+    Congratulations! You have successfully completed the lesson on calculating EWMA and creating a control chart using R.
